@@ -25,6 +25,9 @@ all: $(BIN)
 $(BIN): $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
+valgrind:
+	valgrind ./simple_shell
+
 clean:
 	-rm -f $(OBJS)
 	-rm -f $(BIN)
