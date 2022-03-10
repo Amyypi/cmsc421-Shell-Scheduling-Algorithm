@@ -46,9 +46,23 @@ int num_builtins(){
 // Functions                               //
 /////////////////////////////////////////////
 int exit_cmd(char **args){
+	int arg_num = 0;
 	printf("exit_cmd called \n");
+	/*
+	// zero argument given
+	if(args[1] == NULL){
+		printf("No argument given in exit cmd");
+		return 0;
+	// one argument given
+	}else{
+		//parsing failed
+		if(arg_num == -1){
+			return 0;
+		{
+	}
+	*/
 	//command exit entered
-	return 0;
+	return (char *)0;
 }
 
 void shell(){
@@ -93,7 +107,7 @@ void shell(){
 int launch_cmd(char **args){
 	pid_t pid, wpid;
 	int counter = 0;
-//	int length = strlen(args);
+//	int length = trlen(args);
 	int status;
 
 	printf("Before fork\n");
@@ -131,7 +145,7 @@ int execute_cmd(char **args){
 		if(strcmp(args[0], builtin_cmd_list[i]) == 0){
 			printf("Exit called\n");
 			ret = (*builtin_func[i])(args);
-			printf("ret is %s \n", ret);
+			//printf("ret is %s \n", ret);
 			return ret;
 		}
 	}
@@ -191,7 +205,7 @@ char *ask_cmd(void){
 			if(c == EOF || c == '\n'){
 				printf("End of ask\n");
 				printf("string: %s \n", pStr);
-				//printf("length: %ld \n", strlen(pStr));
+				//printf("length: %ld \n", trlen(pStr));
 				pStr[i] = '\0';
 				return pStr;
 			}else{
