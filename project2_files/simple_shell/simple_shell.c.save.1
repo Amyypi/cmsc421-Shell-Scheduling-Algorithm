@@ -1,0 +1,183 @@
+/*
+CMSC421 Spring 2022 - Section 4
+Author:        Amy Phan
+Email:         mphan1@umbc.edu
+ID:            CM82779
+
+Project name: Project 2 part 1
+*/
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include "utils.h"
+/*
+	includes functions:
+	extern size_t count_spaces(const char *str);
+	extern void flush_input(FILE *fp);
+	extern char *unescape(const char *str, FILE *errf);
+	extern int first_unquoted_space(const char *str);
+*/
+
+// Predefined variables or constants//
+//change this later to be changable sizes
+char i; //global counter
+
+char *ask_cmd(void);
+char **pars(char *line);
+
+/////////////////////////////////////////////
+void shell(){
+	char *line;
+	char **argument;
+	char *argument_esc;
+	int status;
+	do{
+		printf("$");
+		line = ask_cmd();
+
+		printf("more than one space \n");
+
+		argument = pars(line);
+		printf("this is argument: %s \n", argument[0]);
+
+
+		argument_esc = unescape(argument[1], "unescape failed");
+		printf("this is unescape %s\n",  argument_esc);
+		status = execute_cmd(argument);
+
+		//free whatever
+		free(line);
+		free(argument);
+		free(argument_esc);
+		line = NULL;
+		argument = NULL;
+		argument_esc = NULL;
+	}while(status);
+
+}
+
+int launch_cmd(char **args){
+	pid_t pid, wpid;
+	int status;
+
+	pid = fork();
+	if(pid == 0){
+		if(execvp(args[0], args) == -1){
+			perror("lsh");
+		}
+		exit(EXIT_FAILURE);
+	}else if(pid < 0){
+		perror("lish");
+	}else{
+		do{
+			wpid = waitpid(pid, &status, WUNTRACED);
+		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+	return 1;
+}
+
+
+/*
+	char *temp = *args;
+	char *command = args[0];
+	int counter = 0;
+	int length = strlen(args);
+
+	while(temp[i] != NULL){
+		i++;
+	}
+	temp[i] = NULL;
+	printf("Before fork");
+	if(fork() == 0){
+		int status_code = execvp(command, temp);
+		printf("ls -l has taken control of this child process.");
+
+		if(status_code == -1){
+			printf("Terminated incorrectly");
+			return 1;
+		}
+	}else{
+		printf("this line will be printed - success fork");
+	}
+	return 0;
+}
+*/
+
+
+int execute_cmd(char **args){
+	int i;
+	if(args[0] == NULL){
+		return 1;
+	}
+	printf("execute went through");
+	return launch_cmd(args);
+}
+
+
+
+char **pars(char *line){
+	int bufsize = 64;
+	int position = 0;
+	char **tokens = malloc(bufsize *sizeof(char*));
+	char *token;
+
+	if(!tokens){
+		fprintf(stderr,"allocation error\n");
+		exit(EXIT_FAILURE);
+	}
+	token = strtok(line," ");
+	while (token != NULL){
+		tokens[position] = token;
+		position++;
+		if(position >= bufsize){
+			bufsize += 64;
+			tokens = realloc(tokens, bufsize * sizeof(char*));
+			if(!tokens){
+				fprintf(stderr, "allocation error\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+		token = strtok(NULL," ");
+	}
+	tokens[position];
+	return tokens;
+}
+
+char *ask_cmd(void){
+	unsigned int len_max = 2;  //buffersize
+	unsigned int current_size = 0;
+	char *pStr = malloc(len_max);
+	int counter;
+	current_size = len_max;
+
+	if(pStr != NULL){
+		int c = EOF;
+		unsigned int i = 0;
+
+		//accept user input until hit enter or end of file
+		c = getchar();
+		while ( c = getchar() != '\n' && c != EOF){
+			pStr[i++]=(char)c;
+			//if i reached maximize size then realloc size
+			if(i >= current_size)
+			{
+				current_size = i+len_max;
+				pStr = realloc(pStr, current_size);
+			}
+		}
+
+		pStr[i] = '\0';
+		printf("length of string %ld \n",strlen(pStr) );
+		printf("\nLong String value: %s \n\n", pStr);
+		return pStr;
+	}
+}
+
+void main(){
+	//start shell and ask user a command
+        shell();
+
+}

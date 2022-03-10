@@ -6,7 +6,7 @@ ID:            CM82779
 
 Project name: Project 2 part 1
 */
-
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -21,86 +21,130 @@ Project name: Project 2 part 1
 	extern int first_unquoted_space(const char *str);
 */
 
+//Define global constants
+#define NUMBER_OF_BUILTINS = 1; //change if more builtins are added
 
-// Predefined variables or constants//
-//change this later to be changable sizes
-char cmd[10];            //String holder for command
-char *argv[10];          // an array for commands and arguments
-pid_t pid;               // global variable for the child process ID
-char i;                  // global for loop counter
+//List of functions//
+char **pars(char *line);
+char *ask_cmd(void);
 
-// Function list //
-void shell(void);            // to start the shell
-char *ask_cmd(void);          // ask the command line from user
-char **pars(char *);
-void error();
+//List of command builtin functions:
+int exit_cmd(char **args);
 
-/*
-Function Declaration for builtin shell commands:
-*/
-int cmd_help(char **args);
-int cmd_exit(char **args);
-void cmd_echo(char **args);
-
-char *builtin_str[] = {
-	"echo"
-	"help"
+char *builtin_cmd_list[] = {
 	"exit"
 };
 
-
-int (*builtin_func[])(char **) ={
-	&cmd_echo,
-	&cmd_help,
-	&cmd_exit
+int(*builtin_func[])(char **) = {
+	&exit_cmd
 };
-
-int cmd_num_builtins(){
-	return sizeof(builtin_str) / sizeof(char*);
+int num_builtins(){
+	return sizeof(builtin_cmd_list) / sizeof(char *);
 }
 
 /////////////////////////////////////////////
-void shell(void){
+// Functions                               //
+/////////////////////////////////////////////
+int exit_cmd(char **args){
+	printf("exit_cmd called \n");
+	//command exit entered
+	return 0;
+}
+
+void shell(){
 	char *line;
 	char **argument;
-	char *argument_esc;
-	int status;
+	//char *argument_esc;
+	int status = 1;
+
 	do{
 		printf("$");
 		line = ask_cmd();
+		argument = pars(line);
 
-		if(!line){
-			//continue to ask again
-		//split command into separate strings
-		}else if(count_spaces(line) == 0){
-			// no need to parse
-			printf("No space, no parsing");
-			status = 0;
-		}else if(count_spaces(line) > 0){
-			//more than one line // needs parsing
-			//parse
-			printf("more than one space \n");
+		printf("this is argument: %s \n", argument[0]);
 
-			argument = pars(line);
-			printf("this is argument: %s \n", argument[0]);
-			//unescape
-
-			argument_esc = unescape(argument[1], "unescape failed");
-			printf("this is unescape %s\n",  argument_esc);
-			status = 0;
+		if(argument[0] == NULL){
+			printf("Empty argument");
+		/*
+		}else if(strcmp(argument[0], builtin_cmd_list[0])){
+			printf("exit called\n");
+			status = exit_cmd(argument);
+		*/
+		}else{
+			//argument_esc = unescape(argument[1], "unescape failed");
+			//printf("this is unescape %s\n",  argument_esc);
+			status = execute_cmd(argument);
 		}
 
-		
+
 		free(line);
 		free(argument);
-		free(argument_esc);
-		line = NULL;
-		argument = NULL;
-		argument_esc = NULL;
-	}while(status);
+	//	free(argument_esc);
+	}while(status || status == -1);
 
+	line = NULL;
+	argument = NULL;
+//	argument_esc = NULL;
+
+	printf("\n Exit out");
 }
+
+int launch_cmd(char **args){
+	pid_t pid, wpid;
+	int counter = 0;
+//	int length = strlen(args);
+	int status;
+
+	printf("Before fork\n");
+	pid = fork();
+
+	if(pid  == 0){
+		printf("ls -l has taken control\n");
+		if(execvp(args[0], args) == -1){
+			perror("lsh");
+			printf("fork fail 1\n");
+		}
+		exit(EXIT_FAILURE);
+
+	}else if(pid < 0){
+		perror("lsh");
+		printf("fork failure 2\n");
+	}else{
+		printf("this line will be printed - fork failed\n");
+		do{
+		wpid = waitpid(pid, &status, WUNTRACED);
+		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+
+	return 1;
+}
+
+
+
+int execute_cmd(char **args){
+	int i;
+	int ret;
+	printf("Execute running\n");
+	for(i = 0; i < num_builtins(); i++){
+		printf("Running for loop execute\n");
+		if(strcmp(args[0], builtin_cmd_list[i]) == 0){
+			printf("Exit called\n");
+			ret = (*builtin_func[i])(args);
+			printf("ret is %s \n", ret);
+			return ret;
+		}
+	}
+
+	printf("launch called\n");
+	return launch_cmd(args);
+}
+
+
+
 char **pars(char *line){
+	printf("Enter pars\n");
+
 	int bufsize = 64;
 	int position = 0;
 	char **tokens = malloc(bufsize *sizeof(char*));
@@ -110,12 +154,10 @@ char **pars(char *line){
 		fprintf(stderr,"allocation error\n");
 		exit(EXIT_FAILURE);
 	}
-
-	token = strtok(line, " \t\r\n\a");
+	token = strtok(line," \n");
 	while (token != NULL){
 		tokens[position] = token;
 		position++;
-
 		if(position >= bufsize){
 			bufsize += 64;
 			tokens = realloc(tokens, bufsize * sizeof(char*));
@@ -124,31 +166,38 @@ char **pars(char *line){
 				exit(EXIT_FAILURE);
 			}
 		}
-		token = strtok(NULL,"  \t\r\n\a");
+		token = strtok(NULL," \n");
 	}
+	printf("Parsing complete");
 	tokens[position];
-
-
 	return tokens;
 }
 
-
+//this should be fine
 char *ask_cmd(void){
-	unsigned int len_max = 2;  //buffersize
+	unsigned int len_max = 100;  //buffersize
 	unsigned int current_size = 0;
 	char *pStr = malloc(len_max);
 	int counter;
 	current_size = len_max;
-
-
 
 	if(pStr != NULL){
 		int c = EOF;
 		unsigned int i = 0;
 
 		//accept user input until hit enter or end of file
-		while (( c = getchar() ) != '\n' && c != EOF){
-			pStr[i++]=(char)c;
+		while (1){
+			c = getchar();
+			if(c == EOF || c == '\n'){
+				printf("End of ask\n");
+				printf("string: %s \n", pStr);
+				//printf("length: %ld \n", strlen(pStr));
+				pStr[i] = '\0';
+				return pStr;
+			}else{
+			pStr[i]=c;
+			}
+			i++;
 			//if i reached maximize size then realloc size
 			if(i >= current_size)
 			{
@@ -156,87 +205,13 @@ char *ask_cmd(void){
 				pStr = realloc(pStr, current_size);
 			}
 		}
-
-		pStr[i] = '\0';
-		printf("length of string %ld \n",strlen(pStr) );
-		printf("\nLong String value: %s \n\n", pStr);
-
-
-		//free(pStr);
-		//pStr = NULL;
 	}
-	return pStr;
+	return NULL;
 }
 
-
-/*
-change directory ( I dont need this)
-*/
-int cmd_cd(char **args){
-	if (args[1] == NULL){
-		fprintf(stderr, "cmd: expected argument to \"cd\"\n");
-	}else{
-		if(chdir(args[1]) != 0){
-			perror("lsh");
-		}
-	}
-	return 1;
-}
-
-/*
-print builtin command: print help
-Param args list of args. not examined
-return always return 1, to continue executing
-*/
-int cmd_help(char **args)
-{
-	int i;
-	printf("Stephen Brennan's LSH\n");
-	printf("Type program names and arguments, and hit enter.\n");
-	printf("The following are built in:\n");
-
-	for(i = 0; i <  cmd_num_builtins(); i++){
-		printf(" %s\n", builtin_str[i]);
-	}
-
-	printf("Use the man command for information on other programs.\n");
-	return 1;
-}
-
-/*
-command exit
-list of args. not examined
-return 0, to terminate execution
-*/
-int cmd_exit(char **args){
-
-	
-	return 0;
-}
-
-void cmd_echo(char **args){
-	
-
-}
-
-
-int cmd_execute(char **args){
-	int i;
-	if(args[0] = NULL){
-		//if empty command was entered
-		return 1;
-	}
-
-	for(i = 0; i < cmd_num_builtins(); i++){
-		if(strcmp(args[0], builtin_str[i]) == 0){
-			return(*builtin_func[i])(args);
-		}
-	}
-	return 0;
-}
-
-void main(){
+int main(int argc, char **argv){
 	//start shell and ask user a command
         shell();
 
+	return EXIT_SUCCESS;
 }
