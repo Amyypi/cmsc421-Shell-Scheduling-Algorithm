@@ -28,6 +28,7 @@ Project name: Project 2 part 1
 char **pars_with_quote(char *line, int num_spaces);
 char **pars(char *line);
 char *ask_cmd(void);
+size_t count_spaces_with_quote(const char *str, int first_space);
 
 ///////////////////////////////////////////
 // List of command builtin functions:    //
@@ -48,6 +49,21 @@ int num_builtins(){
 /////////////////////////////////////////////
 // Functions                               //
 /////////////////////////////////////////////
+size_t count_spaces_with_quote(const char *str, int first_space){
+	size_t num_of_spaces = 0;
+	int char_counter = 0;
+        do{
+		if(*str){
+			return num_of_spaces;
+		}
+		if(isspace(*str++)){
+                num_of_spaces++;
+        	}
+       		char_counter++;
+        }while(char_counter != first_space);
+	return num_of_spaces;
+}
+
 int exit_cmd(char **args){
 	int arg_num = 0;
 	printf("exit_cmd called \n");
@@ -73,6 +89,7 @@ void shell(){
 	//char *argument_esc;
 	int status = 1;
 	int first_space;
+	int char_counter;
 	int num_of_spaces;
 
 	do{
@@ -86,7 +103,14 @@ void shell(){
 
 		//if there is a quote, do parsing with quote
 		if(first_space >= 0){
-			num_of_spaces = count_spaces(line);
+			num_of_spaces = 0;
+			char_counter = 0;
+			//count how many spaces there are before quote
+			num_of_spaces = count_spaces_with_quote(line, first_space);
+			printf("line after isspace: %s\n", line);
+
+
+			//parse with quote
 			argument = pars_with_quote(line, num_of_spaces);
 
 			printf("argument with quote 1: %s\n", argument[0]);
@@ -109,6 +133,7 @@ void shell(){
 			}
 		}
 		free(line);
+
 		free(argument);
 	//	free(argument_esc);
 	}while(status || status == -1);
@@ -179,12 +204,26 @@ char **pars_with_quote(char *line, int num_spaces){
                 fprintf(stderr,"allocation error\n");
                 exit(EXIT_FAILURE);
         }
-        token = strtok(line," ");
-	//tokens[position] = token;
 
-	
-        for(counter = 0; counter < num_spaces + 1; counter++){
-                tokens[position] = token;
+        token = strtok(line," ");
+	if(num_spaces > 1){
+		for(counter = 0; counter < num_spaces - 1; counter++){
+                	tokens[position] = token;
+                	position++;
+                	if(position >= bufsize){
+                        	bufsize += 64;
+                       		tokens = realloc(tokens, bufsize * sizeof(char*));
+                        	if(!tokens){
+                                	fprintf(stderr, "allocation error\n");
+                                	exit(EXIT_FAILURE);
+                        	}
+                	}
+                	token = strtok(NULL," ");
+        	}
+	}
+
+        for(counter = 0; counter < 2; counter++){
+           	tokens[position] = token;
                 position++;
                 if(position >= bufsize){
                         bufsize += 64;
@@ -196,7 +235,6 @@ char **pars_with_quote(char *line, int num_spaces){
                 }
                 token = strtok(NULL,"\"");
         }
-	
 
         printf("Parsing with quote complete");
         tokens[position];
