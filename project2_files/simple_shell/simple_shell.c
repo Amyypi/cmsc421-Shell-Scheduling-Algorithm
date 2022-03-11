@@ -26,7 +26,7 @@ Project name: Project 2 part 1
 
 //List of functions//
 char **pars_with_quote(char *line, int num_spaces);
-char **pars(char *line);
+char **pars(char *line, char delin[]);
 char *ask_cmd(void);
 size_t count_spaces_with_quote(const char *str, int first_space);
 
@@ -34,13 +34,16 @@ size_t count_spaces_with_quote(const char *str, int first_space);
 // List of command builtin functions:    //
 //////////////////////////////////////////
 int exit_cmd(char **args);
+int proc_cmd(char **args);
 
 char *builtin_cmd_list[] = {
-	"exit"
+	"exit",
+	"proc"
 };
 
 int(*builtin_func[])(char **) = {
-	&exit_cmd
+	&exit_cmd,
+	&proc_cmd
 };
 int num_builtins(){
 	return sizeof(builtin_cmd_list) / sizeof(char *);
@@ -62,6 +65,62 @@ size_t count_spaces_with_quote(const char *str, int first_space){
        		char_counter++;
         }while(char_counter != first_space);
 	return num_of_spaces;
+}
+int proc_cmd(char **args){
+	printf("proc_cmd called\n");
+        FILE * pFile;
+	long lSize;
+	char buffer[10000];
+	size_t result;
+	char* procDir;
+	char **argument;
+	char* procName = "/proc/";
+
+	printf("parse arg[1] is: %s\n", args[1]);
+	argument = pars(args[1], "/");
+        printf("argument with quote 1: %s\n", argument[0]);
+        printf("argument with quote 2: %s\n", argument[1]);
+
+	if(strcmp(argument[0], "pid") == 0){
+		//if we have display pid/...
+		pid_t pid = getpid();
+		printf("pid: %d\n", pid);
+
+
+		char mypid[5];
+		sprintf(mypid, "%d", pid);
+                procDir = malloc(strlen(argument)+4+6+2);
+                printf("pid: malloc'd\n");
+		strcpy(procDir, procName);
+		strcat(procDir, mypid);
+		strcat(procDir,"/");
+                strcat(procDir, argument[1]);
+
+
+	}else{
+		//regular proc
+		procDir = malloc(strlen(args)+1+6);
+		strcpy(procDir, procName);
+		strcat(procDir, args[1]);
+	}
+
+	printf("This is procDir:%s \n", procDir);
+	pFile = fopen(procDir, "r");
+	printf("Opened the procdir\n");
+	if(pFile != NULL){
+		do{
+			result = fread(buffer, 1, sizeof buffer, pFile);
+			if(result != 0){
+				fwrite(buffer, 1, result, stdout);
+			}
+		}while(result != 0);
+		fprintf(stdout, "\nProc ended\n");
+	}else{
+		printf("Failed proc command\n");
+	}
+	free(argument);
+	argument = NULL;
+	return 1;
 }
 
 int exit_cmd(char **args){
@@ -86,14 +145,11 @@ int exit_cmd(char **args){
 void shell(){
 	char *line;
 	char **argument;
-	//char *argument_esc;
 	int status = 1;
 	int first_space;
-	int char_counter;
-	int num_of_spaces;
+	int num_of_spaces = -1;
 
 	do{
-
 		//ask for command from user
 		printf("$");
 		line = ask_cmd();
@@ -104,7 +160,6 @@ void shell(){
 		//if there is a quote, do parsing with quote
 		if(first_space >= 0){
 			num_of_spaces = 0;
-			char_counter = 0;
 			//count how many spaces there are before quote
 			num_of_spaces = count_spaces_with_quote(line, first_space);
 			printf("line after isspace: %s\n", line);
@@ -123,7 +178,7 @@ void shell(){
 			argument[1] = NULL;
 		//if there aren't any quotes, do regular parsing
 		}else{
-			argument = pars(line);
+			argument = pars(line, " \n");
 			printf("this is argument: %s \n", argument[0]);
 			//check if input isn't empty;
 			if(argument[0] == NULL){
@@ -133,14 +188,11 @@ void shell(){
 			}
 		}
 		free(line);
-
 		free(argument);
-	//	free(argument_esc);
 	}while(status || status == -1);
 
 	line = NULL;
 	argument = NULL;
-
 	printf("\n Exit out");
 }
 
@@ -172,8 +224,6 @@ int launch_cmd(char **args){
 	return 1;
 }
 
-
-
 int execute_cmd(char **args){
 	int i;
 	int ret;
@@ -192,6 +242,7 @@ int execute_cmd(char **args){
 	return launch_cmd(args);
 }
 
+// Parsing with quotes
 char **pars_with_quote(char *line, int num_spaces){
         printf("Enter pars with quote\n");
         int bufsize = 64;
@@ -206,6 +257,7 @@ char **pars_with_quote(char *line, int num_spaces){
         }
 
         token = strtok(line," ");
+	//If there is more than one space in command line
 	if(num_spaces > 1){
 		for(counter = 0; counter < num_spaces - 1; counter++){
                 	tokens[position] = token;
@@ -221,7 +273,7 @@ char **pars_with_quote(char *line, int num_spaces){
                 	token = strtok(NULL," ");
         	}
 	}
-
+	//Parse the quote to be a full line
         for(counter = 0; counter < 2; counter++){
            	tokens[position] = token;
                 position++;
@@ -242,8 +294,8 @@ char **pars_with_quote(char *line, int num_spaces){
 }
 
 
-
-char **pars(char *line){
+// Regular parsing without quotations
+char **pars(char *line, char delin[]){
 	printf("Enter pars\n");
 
 	int bufsize = 64;
@@ -255,7 +307,7 @@ char **pars(char *line){
 		fprintf(stderr,"allocation error\n");
 		exit(EXIT_FAILURE);
 	}
-	token = strtok(line," \n");
+	token = strtok(line, delin);
 	while (token != NULL){
 		tokens[position] = token;
 		position++;
@@ -267,14 +319,14 @@ char **pars(char *line){
 				exit(EXIT_FAILURE);
 			}
 		}
-		token = strtok(NULL," \n");
+		token = strtok(NULL, delin);
 	}
 	printf("Parsing complete");
 	tokens[position];
 	return tokens;
 }
 
-//this should be fine
+// Ask for user to input a command
 char *ask_cmd(void){
 	unsigned int len_max = 100;  //buffersize
 	unsigned int current_size = 0;
@@ -311,7 +363,7 @@ char *ask_cmd(void){
 }
 
 int main(int argc, char **argv){
-	//start shell and ask user a command
+	//start shell
         shell();
 	return EXIT_SUCCESS;
 }
