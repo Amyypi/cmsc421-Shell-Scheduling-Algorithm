@@ -13,13 +13,6 @@ Project name: Project 2 part 1
 #include <stdio.h>
 #include <ctype.h>
 #include "utils.h"
-/*
-	includes functions:
-	extern size_t count_spaces(const char *str);
-	extern void flush_input(FILE *fp);
-	extern char *unescape(const char *str, FILE *errf);
-	extern int first_unquoted_space(const char *str);
-*/
 
 //Define global constants
 #define NUMBER_OF_BUILTINS = 1; //change if more builtins are added
@@ -30,9 +23,9 @@ char **pars(char *line, char delin[]);
 char *ask_cmd(void);
 size_t count_spaces_with_quote(const char *str, int first_space);
 
-///////////////////////////////////////////
-// List of command builtin functions:    //
-//////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+// List of command builtin functions and builtin functions:    //
+////////////////////////////////////////////////////////////////
 int exit_cmd(char **args);
 int proc_cmd(char **args);
 
@@ -48,6 +41,85 @@ int(*builtin_func[])(char **) = {
 int num_builtins(){
 	return sizeof(builtin_cmd_list) / sizeof(char *);
 }
+
+int proc_cmd(char **args){
+        //printf("proc_cmd called\n");
+        FILE * pFile;
+        long lSize;
+        char buffer[10000];
+        size_t result;
+        char* procDir;
+        char **argument;
+        char* procName = "/proc/";
+
+        printf("parse arg[1] is: %s\n", args[1]);
+        argument = pars(args[1], "/");
+        printf("argument with quote 1: %s\n", argument[0]);
+        printf("argument with quote 2: %s\n", argument[1]);
+
+        if(strcmp(argument[0], "pid") == 0){
+                //if we have display pid/...
+                pid_t pid = getpid();
+
+                char mypid[5];
+                sprintf(mypid, "%d", pid);
+                procDir = malloc(strlen(argument)*10);
+                strcpy(procDir, procName);
+                strcat(procDir, mypid);
+                strcat(procDir,"/");
+                strcat(procDir, argument[1]);
+
+
+        }else{
+                //regular proc with no pid/...
+                procDir = malloc(strlen(args)*10);
+                strcpy(procDir, procName);
+                strcat(procDir, args[1]);
+        }
+
+
+        pFile = fopen(procDir, "r");
+        if(pFile != NULL){
+                do{
+                        result = fread(buffer, 1, sizeof buffer, pFile);
+                        if(result != 0){
+                                fwrite(buffer, 1, result, stdout);
+                        }
+                }while(result != 0);
+        }else{
+                printf("Failed proc command\n");
+        }
+	fclose(pFile);
+	free(procDir);
+        free(argument);
+	procDir = NULL;
+        argument = NULL;
+        return 1;
+}
+
+int exit_cmd(char **args){
+        int arg_num = 0;
+        //printf("exit_cmd called \n");
+
+	/*
+        // zero argument given
+        if(args[1] == NULL){
+                //printf("No argument given in exit cmd");
+                return (char *)0;
+        // one argument given
+        }else{
+                //parsing failed
+                if(arg_num == -1){
+                        return (char *)0;
+                }else{
+			return -1;
+		}
+        }
+	*/
+        //command exit entered
+        return (char *)0;
+}
+
 
 /////////////////////////////////////////////
 // Functions                               //
@@ -66,87 +138,12 @@ size_t count_spaces_with_quote(const char *str, int first_space){
         }while(char_counter != first_space);
 	return num_of_spaces;
 }
-int proc_cmd(char **args){
-	printf("proc_cmd called\n");
-        FILE * pFile;
-	long lSize;
-	char buffer[10000];
-	size_t result;
-	char* procDir;
-	char **argument;
-	char* procName = "/proc/";
-
-	printf("parse arg[1] is: %s\n", args[1]);
-	argument = pars(args[1], "/");
-        printf("argument with quote 1: %s\n", argument[0]);
-        printf("argument with quote 2: %s\n", argument[1]);
-
-	if(strcmp(argument[0], "pid") == 0){
-		//if we have display pid/...
-		pid_t pid = getpid();
-		printf("pid: %d\n", pid);
-
-
-		char mypid[5];
-		sprintf(mypid, "%d", pid);
-                procDir = malloc(strlen(argument)+4+6+2);
-                printf("pid: malloc'd\n");
-		strcpy(procDir, procName);
-		strcat(procDir, mypid);
-		strcat(procDir,"/");
-                strcat(procDir, argument[1]);
-
-
-	}else{
-		//regular proc
-		procDir = malloc(strlen(args)+1+6);
-		strcpy(procDir, procName);
-		strcat(procDir, args[1]);
-	}
-
-	printf("This is procDir:%s \n", procDir);
-	pFile = fopen(procDir, "r");
-	printf("Opened the procdir\n");
-	if(pFile != NULL){
-		do{
-			result = fread(buffer, 1, sizeof buffer, pFile);
-			if(result != 0){
-				fwrite(buffer, 1, result, stdout);
-			}
-		}while(result != 0);
-		fprintf(stdout, "\nProc ended\n");
-	}else{
-		printf("Failed proc command\n");
-	}
-	free(argument);
-	argument = NULL;
-	return 1;
-}
-
-int exit_cmd(char **args){
-	int arg_num = 0;
-	printf("exit_cmd called \n");
-
-	// zero argument given
-	if(args[1] == NULL){
-		printf("No argument given in exit cmd");
-		return (char *)0;
-	// one argument given
-	}else{
-		//parsing failed
-		if(arg_num == -1){
-			return (char *)0;
-		}
-	}
-	//command exit entered
-	return (char *)0;
-}
 
 void shell(){
 	char *line;
 	char **argument;
 	int status = 1;
-	int first_space;
+	int first_space = 0;
 	int num_of_spaces = -1;
 
 	do{
@@ -162,27 +159,27 @@ void shell(){
 			num_of_spaces = 0;
 			//count how many spaces there are before quote
 			num_of_spaces = count_spaces_with_quote(line, first_space);
-			printf("line after isspace: %s\n", line);
+			//printf("line after isspace: %s\n", line);
 
 
 			//parse with quote
 			argument = pars_with_quote(line, num_of_spaces);
 
-			printf("argument with quote 1: %s\n", argument[0]);
-			printf("argument with quote 2: %s\n", argument[1]);
+			//printf("argument with quote 1: %s\n", argument[0]);
+			//printf("argument with quote 2: %s\n", argument[1]);
 
 			argument[1] = unescape(argument[1], "error");
-			printf("Print echo here: \n");
+			//printf("Print echo here: \n");
 			status = execute_cmd(argument);
 			free(argument[1]);
 			argument[1] = NULL;
 		//if there aren't any quotes, do regular parsing
 		}else{
 			argument = pars(line, " \n");
-			printf("this is argument: %s \n", argument[0]);
+			//printf("this is argument: %s \n", argument[0]);
 			//check if input isn't empty;
 			if(argument[0] == NULL){
-				printf("Empty argument");
+				printf("Empty argument\n");
 			}else{
 				status = execute_cmd(argument);
 			}
@@ -193,19 +190,20 @@ void shell(){
 
 	line = NULL;
 	argument = NULL;
-	printf("\n Exit out");
+	printf("\n Exit out\n\n");
 }
 
 int launch_cmd(char **args){
-	pid_t pid, wpid;
+	pid_t pid = NULL;
+	pid_t wpid = NULL;
 	int counter = 0;
-	int status;
+	int status = 0;
 
-	printf("Before fork\n");
+	//printf("Before fork\n");
 	pid = fork();
 
 	if(pid  == 0){
-		printf("ls -l has taken control\n");
+		//printf("ls -l has taken control\n");
 		if(execvp(args[0], args) == -1){
 			perror("lsh");
 			printf("fork fail 1\n");
@@ -216,7 +214,6 @@ int launch_cmd(char **args){
 		perror("lsh");
 		printf("fork failure 2\n");
 	}else{
-		printf("this line will be printed - fork failed\n");
 		do{
 		wpid = waitpid(pid, &status, WUNTRACED);
 		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
@@ -225,26 +222,24 @@ int launch_cmd(char **args){
 }
 
 int execute_cmd(char **args){
-	int i;
-	int ret;
-	printf("Execute running\n");
+	int i = 0;
+	int ret = 0;
+	//printf("Execute running\n");
 	for(i = 0; i < num_builtins(); i++){
-		printf("Running for loop execute\n");
+		//printf("Running for loop execute\n");
 		if(strcmp(args[0], builtin_cmd_list[i]) == 0){
-			printf("Exit called\n");
 			ret = (*builtin_func[i])(args);
-			//printf("ret is %s \n", ret);
 			return ret;
 		}
 	}
 
-	printf("launch called\n");
+	//printf("launch called\n");
 	return launch_cmd(args);
 }
 
 // Parsing with quotes
 char **pars_with_quote(char *line, int num_spaces){
-        printf("Enter pars with quote\n");
+       // printf("Enter pars with quote\n");
         int bufsize = 64;
         int position = 0;
 	int counter = 0;
@@ -288,7 +283,7 @@ char **pars_with_quote(char *line, int num_spaces){
                 token = strtok(NULL,"\"");
         }
 
-        printf("Parsing with quote complete");
+        //printf("Parsing with quote complete");
         tokens[position];
         return tokens;
 }
@@ -296,7 +291,7 @@ char **pars_with_quote(char *line, int num_spaces){
 
 // Regular parsing without quotations
 char **pars(char *line, char delin[]){
-	printf("Enter pars\n");
+	//printf("Enter pars\n");
 
 	int bufsize = 64;
 	int position = 0;
@@ -321,34 +316,33 @@ char **pars(char *line, char delin[]){
 		}
 		token = strtok(NULL, delin);
 	}
-	printf("Parsing complete");
+	//printf("Parsing complete");
 	tokens[position];
 	return tokens;
 }
 
 // Ask for user to input a command
 char *ask_cmd(void){
-	unsigned int len_max = 100;  //buffersize
-	unsigned int current_size = 0;
-	char *pStr = malloc(len_max);
-	int counter;
+	unsigned int len_max = 100;      // buffersize
+	unsigned int current_size = 0;   // used to keep track of the char size
+	char *pStr = malloc(len_max);    // initialize char 
+	//int counter;
 	current_size = len_max;
 
 	if(pStr != NULL){
 		int c = EOF;
 		unsigned int i = 0;
-
 		//accept user input until hit enter or end of file
 		while (1){
 			c = getchar();
 			if(c == EOF || c == '\n'){
-				printf("End of ask\n");
-				printf("string: %s \n", pStr);
+				//printf("End of ask\n");
+				//printf("string: %s \n", pStr);
 				//printf("length: %ld \n", trlen(pStr));
 				pStr[i] = '\0';
 				return pStr;
 			}else{
-			pStr[i]=c;
+				pStr[i]=c;
 			}
 			i++;
 			//if i reached maximize size then realloc size
