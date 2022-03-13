@@ -10,60 +10,63 @@
 
 // define MIN_PRIORITY 1
 // deifne MAX_PRIORITY 10
-typedef struct task *task_list = NULL;
-
-struct node *head = NULL;
+struct node *head;
 
 void add(char *name, int priority, int burst){
 
 //check task->name for insertion etc
 
-	printf("add function executed\n");
-	task *taskNode;
-	taskNode = (task*)malloc(sizeof(taskNode));
+	//printf("add function executed\n");
+	struct task *taskNode;
+	taskNode = malloc(sizeof(taskNode) * (5));
 	taskNode->name = name;
-	taskNode->tid = NULL;
+	taskNode->tid = 0;
 	taskNode->priority = priority;
 	taskNode->burst = burst;
-	printf("Successful new task added in\n");
+	//printf("Successful new task added in\n");
 
-	printf("make new task_list node\n");
+	//printf("make new task_list node\n");
 	//add task to the list
 	struct node *task_list = malloc(sizeof(struct node));
 	task_list->task = taskNode;
 	task_list->next = NULL;
-	printf("Successful task_list node made\n");
+	//printf("Successful task_list node made\n");
 
-	printf("Before adding node to head list\n");
+	struct node *temp = head;
+
+	//printf("Before adding node to head list\n");
 	//
 	if(head == NULL){
-		printf("make new node head\n");
-		*head = task_list;
-		head->next = NULL;
-		printf("Successful head node\n");
+		//printf("make new node head\n");
+		task_list->next = head;
+		head = task_list;
+		//head->next = NULL;
+		//printf("Successful head node\n");
 	}else{
-		printf("Add node to the end of the list\n");
-		struct node *temp = head;
+		//printf("Add node to the end of the list\n");
+		//struct node *temp;
+		//temp = head;
 
 		//traverse until last node and add node at end
-		do{
-			if(temp->next != NULL){
-				printf("added task to task list success\n");
-				temp->next = task_list;
-				temp->next->next = NULL;
-			}
-			temp=temp->next;
-		}while(temp->next != NULL);
-		printf("Successful node added at the end of list - add()\n");
-		free(temp);
-	}
+		while(temp->next != NULL){
+			temp = temp->next;
+		}
+		printf("Inserted task, ");
+		printf("[%s] [%d] [%d].\n",taskNode->name, taskNode->priority, taskNode->burst);
+		temp->next = task_list;
 
+		//printf("Successful node added at the end of list - add()\n");
+
+	}
+	//free(temp);
+	printf("\n");
+	return;
 }
 
 void schedule(){
 
 
-	
+	printf("\n\n");
 	//do algorithm
 
 	// loop - make new list of ordered algorithm
@@ -80,19 +83,27 @@ void schedule(){
 
 	// traverse and pass task of each node into run()
         // execute run(Task *task, int slice) from list
-        // pass in every node of the list until null?
+        // pass in every node of the list until null
+	// Once done, free each node and task
 
-	printf("Schedule exectued\n");
 	// assign node list to this
 	struct node *temp;
 	temp = head;
-	printf("Before traversing through list schedule()\n");
+	printf("Print list of tasks\n");
 	while(temp != NULL){
-		//find out what slice does
-		run(temp->task, 5)
+		run(temp->task, 10);
 		temp = temp->next;
 	}
+
 	printf("Successful traverse list print, freeing node and exit\n");
-	free(temp);
-	free(head);
+	struct task *task_temp;
+	temp = head;
+	while(head != NULL){
+		temp = head;
+		task_temp = temp->task;
+		head = head->next;
+		free(task_temp);
+		free(temp);
+	}
+
 }
