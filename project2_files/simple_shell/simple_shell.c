@@ -43,7 +43,6 @@ int num_builtins(){
 }
 
 int proc_cmd(char **args){
-        //printf("proc_cmd called\n");
         FILE * pFile;
         long lSize;
         char buffer[10000];
@@ -52,10 +51,7 @@ int proc_cmd(char **args){
         char **argument;
         char* procName = "/proc/";
 
-        printf("parse arg[1] is: %s\n", args[1]);
         argument = pars(args[1], "/");
-        printf("argument with quote 1: %s\n", argument[0]);
-        printf("argument with quote 2: %s\n", argument[1]);
 
         if(strcmp(argument[0], "pid") == 0){
                 //if we have display pid/...
@@ -159,24 +155,16 @@ void shell(){
 			num_of_spaces = 0;
 			//count how many spaces there are before quote
 			num_of_spaces = count_spaces_with_quote(line, first_space);
-			//printf("line after isspace: %s\n", line);
-
 
 			//parse with quote
 			argument = pars_with_quote(line, num_of_spaces);
-
-			//printf("argument with quote 1: %s\n", argument[0]);
-			//printf("argument with quote 2: %s\n", argument[1]);
-
 			argument[1] = unescape(argument[1], "error");
-			//printf("Print echo here: \n");
 			status = execute_cmd(argument);
 			free(argument[1]);
 			argument[1] = NULL;
 		//if there aren't any quotes, do regular parsing
 		}else{
 			argument = pars(line, " \n");
-			//printf("this is argument: %s \n", argument[0]);
 			//check if input isn't empty;
 			if(argument[0] == NULL){
 				printf("Empty argument\n");
@@ -199,11 +187,9 @@ int launch_cmd(char **args){
 	int counter = 0;
 	int status = 0;
 
-	//printf("Before fork\n");
 	pid = fork();
 
 	if(pid  == 0){
-		//printf("ls -l has taken control\n");
 		if(execvp(args[0], args) == -1){
 			perror("lsh");
 			printf("fork fail 1\n");
@@ -224,22 +210,18 @@ int launch_cmd(char **args){
 int execute_cmd(char **args){
 	int i = 0;
 	int ret = 0;
-	//printf("Execute running\n");
+
 	for(i = 0; i < num_builtins(); i++){
-		//printf("Running for loop execute\n");
 		if(strcmp(args[0], builtin_cmd_list[i]) == 0){
 			ret = (*builtin_func[i])(args);
 			return ret;
 		}
 	}
-
-	//printf("launch called\n");
 	return launch_cmd(args);
 }
 
 // Parsing with quotes
 char **pars_with_quote(char *line, int num_spaces){
-       // printf("Enter pars with quote\n");
         int bufsize = 64;
         int position = 0;
 	int counter = 0;
@@ -282,8 +264,6 @@ char **pars_with_quote(char *line, int num_spaces){
                 }
                 token = strtok(NULL,"\"");
         }
-
-        //printf("Parsing with quote complete");
         tokens[position];
         return tokens;
 }
@@ -291,8 +271,6 @@ char **pars_with_quote(char *line, int num_spaces){
 
 // Regular parsing without quotations
 char **pars(char *line, char delin[]){
-	//printf("Enter pars\n");
-
 	int bufsize = 64;
 	int position = 0;
 	char **tokens = malloc(bufsize *sizeof(char*));
@@ -316,7 +294,6 @@ char **pars(char *line, char delin[]){
 		}
 		token = strtok(NULL, delin);
 	}
-	//printf("Parsing complete");
 	tokens[position];
 	return tokens;
 }
@@ -336,9 +313,6 @@ char *ask_cmd(void){
 		while (1){
 			c = getchar();
 			if(c == EOF || c == '\n'){
-				//printf("End of ask\n");
-				//printf("string: %s \n", pStr);
-				//printf("length: %ld \n", trlen(pStr));
 				pStr[i] = '\0';
 				return pStr;
 			}else{
