@@ -15,7 +15,9 @@ Project name: Project 2 part 1
 #include "utils.h"
 
 //Define global constants
-#define NUMBER_OF_BUILTINS = 1; //change if more builtins are added
+//#define NUMBER_OF_BUILTINS = 1; //change if more builtins are added
+#define ERROR_RETURN_CODE 1
+#define KEEP_LOOPING 2
 
 //List of functions//
 char **pars_with_quote(char *line, int num_spaces);
@@ -28,6 +30,7 @@ size_t count_spaces_with_quote(const char *str, int first_space);
 ////////////////////////////////////////////////////////////////
 int exit_cmd(char **args);
 int proc_cmd(char **args);
+
 
 char *builtin_cmd_list[] = {
 	"exit",
@@ -77,7 +80,7 @@ int proc_cmd(char **args){
         pFile = fopen(procDir, "r");
         if(pFile != NULL){
                 do{
-                        result = fread(buffer, 1, sizeof buffer, pFile);
+                        result = fread(buffer, 1, sizeof(buffer), pFile);
                         if(result != 0){
                                 fwrite(buffer, 1, result, stdout);
                         }
@@ -90,30 +93,38 @@ int proc_cmd(char **args){
         free(argument);
 	procDir = NULL;
         argument = NULL;
-        return 1;
+	printf("\n");
+        return KEEP_LOOPING;
 }
 
-int exit_cmd(char **args){
-        int arg_num = 0;
-        //printf("exit_cmd called \n");
 
-	/*
-        // zero argument given
-        if(args[1] == NULL){
-                //printf("No argument given in exit cmd");
-                return (char *)0;
-        // one argument given
+
+int exit_cmd(char **args){
+        unsigned int arg_num = 0;
+        unsigned int count = sizeof(args);
+
+        // force exit
+	if(strcmp(args[0],builtin_cmd_list[0]) != 0){
+		printf("EXIT FORCED\n");
+		return (int)0;
+	}else if(count){
+		//zero argument given
+                printf("No argument given in exit cmd\n");
+                return (int)0;
         }else{
+		// one or more argument(s) given
                 //parsing failed
-                if(arg_num == -1){
-                        return (char *)0;
+                if(count >= 1){
+			printf("Exit return status: %d\n",count);
+			return (int)0;
                 }else{
-			return -1;
+			fprintf(stderr,"ERROR: Unable to parse exit argument\n");
+                        return 0;
 		}
         }
-	*/
+
         //command exit entered
-        return (char *)0;
+        return (int)0;
 }
 
 
@@ -137,8 +148,11 @@ size_t count_spaces_with_quote(const char *str, int first_space){
 
 void shell(){
 	char *line;
+	//char *error_msg = {"exit"}
+	//char *error_msg2[1] = error_msg;
 	char **argument;
 	int status = 1;
+	int status_exit = 0;
 	int first_space = 0;
 	int num_of_spaces = -1;
 
@@ -171,10 +185,15 @@ void shell(){
 			}else{
 				status = execute_cmd(argument);
 			}
+			if(status == 1){
+	                        status = (*builtin_func[0])(argument); 
+                	}
+
 		}
+
 		free(line);
 		free(argument);
-	}while(status || status == -1);
+	}while(status != 1 &&  (status >= KEEP_LOOPING) && status != -1);
 
 	line = NULL;
 	argument = NULL;
@@ -185,26 +204,29 @@ int launch_cmd(char **args){
 	pid_t pid = NULL;
 	pid_t wpid = NULL;
 	int counter = 0;
-	int status = 0;
+	int status = 0; //0 = pass, 1 = error
+	unsigned int exit_status = 2;
 
 	pid = fork();
 
-	if(pid  == 0){
-		if(execvp(args[0], args) == -1){
-			perror("lsh");
-			printf("fork fail 1\n");
+	if(pid == 0){
+		if(execvp(args[0], args) == 0){
+			perror("lsh ");
+			fprintf(stderr,"ERROR: Does not accept any command line arguments\n");
+			exit_status = 1;
 		}
 		exit(EXIT_FAILURE);
-
 	}else if(pid < 0){
-		perror("lsh");
-		printf("fork failure 2\n");
+		fprintf(stderr, "ERORR: fork failure\n");
+		exit_status = 2;
 	}else{
 		do{
-		wpid = waitpid(pid, &status, WUNTRACED);
+			wpid = waitpid(pid, &status, WUNTRACED);
 		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
+
 	}
-	return 1;
+
+	return exit_status;
 }
 
 int execute_cmd(char **args){
@@ -331,6 +353,7 @@ char *ask_cmd(void){
 }
 
 int main(int argc, char **argv){
+
 	//start shell
         shell();
 	return EXIT_SUCCESS;
