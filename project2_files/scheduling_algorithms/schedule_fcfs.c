@@ -33,6 +33,9 @@ void add(char *name, int priority, int burst){
 	if(head == NULL){
 		task_list->next = head;
 		head = task_list;
+		printf("Inserted task as new head, ");
+                printf("[%s] [%d] [%d].\n",taskNode->name, taskNode->priority, taskNode->burst);
+
 	}else{
 		//traverse until last node and add node at end
 		while(temp->next != NULL){
@@ -43,14 +46,13 @@ void add(char *name, int priority, int burst){
 		temp->next = task_list;
 
 	}
-	printf("\n");
 	return;
 }
 
 void schedule(){
 
 	printf("\n\n");
-
+	printf("task are inserted and ordered by when they got inserted\n");
 ///////////////////////////////////////
 
 	// traverse and pass task of each node into run()
@@ -63,7 +65,7 @@ void schedule(){
 	temp = head;
 	printf("Print list of tasks\n");
 	while(temp != NULL){
-		run(temp->task, 10);
+		run(temp->task, temp->task->burst);
 		temp = temp->next;
 	}
 

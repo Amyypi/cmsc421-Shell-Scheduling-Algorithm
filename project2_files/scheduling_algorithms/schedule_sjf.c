@@ -13,28 +13,45 @@
 struct node *head;
 
 void sortedInsert(struct node *newNode){
-	//struct node dummy;
-	struct node* current;
-	current = head;
-	//dummy.next = head;
+ struct node* current;
+        current = head;
+        int nodeAdded = 1;           // task is intialize with 1, if newNode is added to the list -
+                                     //     it will turn into 0 to stop while loop
 
-	if(current == NULL){
-		printf("current emtpy\n");
-	}else if(current->task->burst >  newNode->task->burst){
-		//burst is bigger than new node's burst
+        if(current == NULL){
+                //node should've been assigned to be head in add(), if not here - then its a error
+                printf("error: current node emtpy\n");
+        }else if(current == head && current->task->burst > newNode->task->burst){
+                //if head is not empty, and newNode's burst is lower than the first node,
+                //        move newNode to be the new head
+                newNode->next = head;
+                head = newNode;
+                printf("Task made as new head ");
+                printf("[%s] [%d] [%d]\n",newNode->task->name, newNode->task->priority, newNode->task->burst);
 
-		newNode->next = head;
-		head = newNode;
-
-
-	}else{
-		while(current->next != NULL && current->next->task->burst < newNode->task->burst){
-			current = current->next;
-		}
-		newNode->next = current->next;
-		current->next = newNode;
-		//head = dummy.next;
-	}
+        }else{
+                //traverse through the list until it hits next node is null or node's burst
+                //        is higher than the newNode's burst
+                while(nodeAdded != 0 && current->next != NULL && current->task->burst <= newNode->task->burst){
+                        //if priority is the same as the newNode's, add newNode to the end of the same priority list
+                        if(current->task->burst == newNode->task->burst){
+                                printf("Encountered a task with the same priority, this will be added at the end of the same priority list\n");
+				while(current->next != NULL && current->next->task->burst == newNode->task->burst){
+                                        current = current->next;
+                                }
+                                nodeAdded = 0;
+                        }else{
+                                //just regular traverse through list
+                                current = current->next;
+                        }
+                }
+		                printf("Inserted task, ");
+                printf("[%s] [%d] [%d] ",newNode->task->name, newNode->task->priority, newNode->task->burst);
+                printf("after, ");
+                printf("[%s] [%d] [%d].\n",current->task->name, current->task->priority, current->task->burst);
+                newNode->next = current->next;
+                current->next = newNode;
+        }
 }
 
 
@@ -52,46 +69,26 @@ void add(char *name, int priority, int burst){
         task_list->task = taskNode;
         task_list->next = NULL;
 
-        //struct node *temp = head;
-	struct node* result = NULL;
-	struct node* current = head;
-	struct node* next;
-
         // Add a new node to the linked list, if head == null, make the new node the head
         if(head == NULL){
+		printf("If priority are the same, algorithm will follow a first come, first served basis\n\n");
                 task_list->next = head;
                 head = task_list;
-        }else{
-                //traverse until last node and add node at end
-                /*
-		while(temp->next != NULL){
-                        temp = temp->next;
-                }
-                printf("Inserted task, ");
+		printf("Inserted task as head, ");
                 printf("[%s] [%d] [%d].\n",taskNode->name, taskNode->priority, taskNode->burst);
-                temp->next = task_list;
-		*/
 
-		//while(current != NULL){
-
-		//	next = current->next;
-			sortedInsert(task_list);
-		//	current = next;
-
-		//}
-		//head = result;
+        }else{
+                //insert the node in the linked list based on the burst number
+		//      in increasing order
+		sortedInsert(task_list);
 	}
-        printf("\n");
         return;
 }
 
 void schedule(){
         printf("\n\n");
 
-
-	//order based on cpu burst?
-
-
+	printf("List shown in the order of CPU burst(increasing order)\n");
 ///////////////////////////////////////
 
         // traverse and pass task of each node into run()
@@ -104,7 +101,7 @@ void schedule(){
         temp = head;
         printf("Print list of tasks\n");
         while(temp != NULL){
-                run(temp->task, 10);
+                run(temp->task, temp->task->burst);
                 temp = temp->next;
         }
 
