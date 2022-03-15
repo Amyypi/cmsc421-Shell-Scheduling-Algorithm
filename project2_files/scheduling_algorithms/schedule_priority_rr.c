@@ -50,11 +50,6 @@ void add(char *name, int priority, int burst){
         task_list->task = taskNode;
         task_list->next = NULL;
 
-        //struct node *temp = head;
-        struct node* result = NULL;
-        struct node* current = head;
-        struct node* next;
-
         // Add a new node to the linked list, if head == null, make the new node the head
         if(head == NULL){
                 task_list->next = head;
@@ -63,20 +58,29 @@ void add(char *name, int priority, int burst){
                 //put the taskNode in the proper order position in the linked list based on priority
                 sortedInsert(task_list);
         }
-        //printf("\n");
         return;
 }
 
 void schedule(){
-        unsigned int time_quantum = 10;
-        unsigned int count = 0, j=0, n=0, remain=0, flag=0;
+	//show original list of task so we can compare this to rr's list
+	struct node *temp;
+        temp = head;
+        printf("Print original list of tasks\n");
+        while(temp != NULL){
+                run(temp->task, temp->task->burst);
+                temp = temp->next;
+        }
+	printf("\n\n");
+
+
+	unsigned int time_quantum = 10;
+        unsigned int count = 0, remain=0, flag=0;
         unsigned int time = 0;
         unsigned int task_counter = 0;
         unsigned int num = 0;
 	char *temp_name;
 
         //traverse through list to know # of tasks
-        struct node *temp;
         temp= head;
         while(temp !=NULL){
                 printf("temp traverse for task_counter\n");
@@ -85,14 +89,9 @@ void schedule(){
         }
         remain = task_counter;
 
-	//at[] -> arrival
-	//pt[] -> priority
-	//bt[] -> burst
-	//task_name[] -> task name
         unsigned int at[remain],pt[remain], bt[remain],rt[remain];
 	char *task_name[remain];
 
-        printf("Enter inializing at,bt,rt\n");
         for(count=0;count<remain;count++){
                 at[count] = 0;
                 bt[count] = 0;
@@ -111,6 +110,7 @@ void schedule(){
                 temp = temp->next;
         }
 
+	printf("\n\n");
         printf("Before rr calc\n");
 	printf("Task name | Priority | turnaround time | Waiting time\n");
         //do RR scheduling calculations

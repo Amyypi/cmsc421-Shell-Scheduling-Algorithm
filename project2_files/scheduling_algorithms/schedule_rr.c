@@ -14,7 +14,6 @@
 struct node *head;
 
 void add(char *name, int priority, int burst){
-
 // create a new task and put values into task
         struct task *taskNode;
         taskNode = malloc(sizeof(taskNode) * (5));
@@ -45,27 +44,35 @@ void add(char *name, int priority, int burst){
 }
 
 void schedule(){
-	unsigned int count = 0, j=0, n=0, remain=0, flag=0;
+        //show original list of task so we can compare this to rr's list
+        struct node *temp;
+        temp = head;
+        printf("Print original list of tasks\n");
+        while(temp != NULL){
+                run(temp->task, temp->task->burst);
+                temp = temp->next;
+        }
+        printf("\n\n");
+
+
+	unsigned int count = 0, remain=0, flag=0;
 	unsigned int time = 0;
 	unsigned int task_counter = 0;
 	unsigned int num = 0;
 	char *temp_name;
 
 	//traverse through list to know # of tasks
-	struct node *temp;
 	temp= head;
 	while(temp !=NULL){
-		printf("temp traverse for task_counter\n");
 		task_counter++;
 		temp = temp->next;
 	}
-	remain = task_couner;
+	remain = task_counter;
 
 	//set up at[] (arrival time), bt[] (burst), rt[], and task_name[]
         unsigned int at[remain], bt[remain],rt[remain];
 	char *task_name[remain];
 
-        printf("Enter inializing at,bt,rt\n");
         for(count=0;count<remain;count++){
 		at[count] = 0;
                 bt[count] = 0;
@@ -97,7 +104,7 @@ void schedule(){
 		}
 		if(rt[count]==0 && flag==1){
 			remain--;
-			printf("%s\t|\t%d\t|\t%d\n", list_name[count],time-at[count],time-at[count]-bt[count]);
+			printf("%s\t|\t%d\t|\t%d\n", task_name[count],time-at[count],time-at[count]-bt[count]);
 			flag=0;
 		}
 		if(count==task_counter-1){
