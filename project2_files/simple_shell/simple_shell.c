@@ -31,7 +31,6 @@ size_t count_spaces_with_quote(const char *str, int first_space);
 int exit_cmd(char **args);
 int proc_cmd(char **args);
 
-
 char *builtin_cmd_list[] = {
 	"exit",
 	"proc"
@@ -45,9 +44,9 @@ int num_builtins(){
 	return sizeof(builtin_cmd_list) / sizeof(char *);
 }
 
+//proc built-in function
 int proc_cmd(char **args){
         FILE * pFile;
-        long lSize;
         char buffer[10000];
         size_t result;
         char* procDir;
@@ -62,7 +61,7 @@ int proc_cmd(char **args){
 
                 char mypid[5];
                 sprintf(mypid, "%d", pid);
-                procDir = malloc(strlen(argument)*10);
+                procDir = malloc(sizeof(argument)*10);
                 strcpy(procDir, procName);
                 strcat(procDir, mypid);
                 strcat(procDir,"/");
@@ -71,7 +70,7 @@ int proc_cmd(char **args){
 
         }else{
                 //regular proc with no pid/...
-                procDir = malloc(strlen(args)*10);
+                procDir = malloc(sizeof(args)*10);
                 strcpy(procDir, procName);
                 strcat(procDir, args[1]);
         }
@@ -98,10 +97,9 @@ int proc_cmd(char **args){
 }
 
 
-
+//exit built in function
 int exit_cmd(char **args){
-        unsigned int arg_num = 0;
-        unsigned int count = sizeof(args);
+        unsigned int count = sizeof(args) * 10;
 
         // force exit
 	if(strcmp(args[0],builtin_cmd_list[0]) != 0){
@@ -122,7 +120,6 @@ int exit_cmd(char **args){
                         return 0;
 		}
         }
-
         //command exit entered
         return (int)0;
 }
@@ -152,7 +149,6 @@ void shell(){
 	//char *error_msg2[1] = error_msg;
 	char **argument;
 	int status = 1;
-	int status_exit = 0;
 	int first_space = 0;
 	int num_of_spaces = -1;
 
@@ -186,11 +182,9 @@ void shell(){
 				status = execute_cmd(argument);
 			}
 			if(status == 1){
-	                        status = (*builtin_func[0])(argument); 
+	                        status = (*builtin_func[0])(argument);
                 	}
-
 		}
-
 		free(line);
 		free(argument);
 	}while(status != 1 &&  (status >= KEEP_LOOPING) && status != -1);
@@ -200,10 +194,10 @@ void shell(){
 	printf("\n Exit out\n\n");
 }
 
+//execute command or give an error
 int launch_cmd(char **args){
 	pid_t pid = NULL;
 	pid_t wpid = NULL;
-	int counter = 0;
 	int status = 0; //0 = pass, 1 = error
 	unsigned int exit_status = 2;
 
@@ -225,10 +219,10 @@ int launch_cmd(char **args){
 		}while(!WIFEXITED(status) && !WIFSIGNALED(status));
 
 	}
-
 	return exit_status;
 }
 
+// checks if the command matches any with the built ins
 int execute_cmd(char **args){
 	int i = 0;
 	int ret = 0;
@@ -297,7 +291,7 @@ char **pars(char *line, char delin[]){
 	int position = 0;
 	char **tokens = malloc(bufsize *sizeof(char*));
 	char *token;
-
+	//parse the line into different 'tokens'or be an error
 	if(!tokens){
 		fprintf(stderr,"allocation error\n");
 		exit(EXIT_FAILURE);
@@ -325,7 +319,6 @@ char *ask_cmd(void){
 	unsigned int len_max = 100;      // buffersize
 	unsigned int current_size = 0;   // used to keep track of the char size
 	char *pStr = malloc(len_max);    // initialize char 
-	//int counter;
 	current_size = len_max;
 
 	if(pStr != NULL){
@@ -353,7 +346,6 @@ char *ask_cmd(void){
 }
 
 int main(int argc, char **argv){
-
 	//start shell
         shell();
 	return EXIT_SUCCESS;
